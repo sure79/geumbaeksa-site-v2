@@ -1,5 +1,4 @@
 const express = require('express');
-const path = require('path');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 
@@ -12,9 +11,6 @@ const ADMIN_PASSWORD = 'admin123'; // 비밀번호를 원하는 값으로 변경
 app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-
-// 정적 파일 서빙
-app.use(express.static('public'));
 
 // 정적 데이터 (읽기 전용)
 const staticData = {
@@ -209,17 +205,12 @@ app.put('/api/contact', requireAuth, (req, res) => {
 
 // 메인 페이지 라우트
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+    res.redirect('/index.html');
 });
 
 // 관리자 페이지 라우트
 app.get('/admin', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'admin.html'));
-});
-
-// 관리자 페이지 접근 (인증 없이 접근 가능하도록 수정)
-app.get('/admin.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'admin-login.html'));
+    res.redirect('/admin.html');
 });
 
 // 404 핸들러
