@@ -218,6 +218,9 @@
                 const data = await response.json();
                 
                 if (data.success) {
+                    // 토큰을 localStorage에 저장
+                    localStorage.setItem('adminToken', data.token);
+                    
                     successMessage.textContent = '로그인 성공! 관리자 페이지로 이동합니다...';
                     successMessage.style.display = 'block';
                     
