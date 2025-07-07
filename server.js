@@ -23,6 +23,7 @@ if (!fs.existsSync('uploads')) {
 // 데이터 파일 경로
 const dataFile = './data/branches.json';
 const slidesFile = './data/slides.json';
+const contactFile = './data/contact.json';
 
 // 데이터 디렉토리 생성
 if (!fs.existsSync('data')) {
@@ -88,6 +89,25 @@ if (!fs.existsSync(slidesFile)) {
     fs.writeFileSync(slidesFile, JSON.stringify(initialSlides, null, 2));
 }
 
+// 연락처 초기 데이터 설정
+if (!fs.existsSync(contactFile)) {
+    const initialContact = {
+        phone: {
+            number: "1588-1234",
+            hours: "평일 9:00-18:00"
+        },
+        email: {
+            address: "info@geumbaeksa.com",
+            hours: "24시간 접수"
+        },
+        kakao: {
+            id: "@금박사",
+            hours: "평일 9:00-18:00"
+        }
+    };
+    fs.writeFileSync(contactFile, JSON.stringify(initialContact, null, 2));
+}
+
 // 파일 업로드 설정
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
@@ -129,6 +149,25 @@ function readSlides() {
 // 슬라이드 데이터 쓰기 함수
 function writeSlides(data) {
     fs.writeFileSync(slidesFile, JSON.stringify(data, null, 2));
+}
+
+// 연락처 데이터 읽기 함수
+function readContact() {
+    try {
+        const data = fs.readFileSync(contactFile, 'utf8');
+        return JSON.parse(data);
+    } catch (error) {
+        return {
+            phone: { number: "1588-1234", hours: "평일 9:00-18:00" },
+            email: { address: "info@geumbaeksa.com", hours: "24시간 접수" },
+            kakao: { id: "@금박사", hours: "평일 9:00-18:00" }
+        };
+    }
+}
+
+// 연락처 데이터 쓰기 함수
+function writeContact(data) {
+    fs.writeFileSync(contactFile, JSON.stringify(data, null, 2));
 }
 
 // API 라우트
@@ -281,6 +320,35 @@ app.delete('/api/slides/:id', (req, res) => {
     data.slides.splice(slideIndex, 1);
     writeSlides(data);
     res.json({ message: '슬라이드가 삭제되었습니다.' });
+});
+
+// 연락처 API 라우트
+
+// 연락처 정보 조회
+app.get('/api/contact', (req, res) => {
+    const data = readContact();
+    res.json(data);
+});
+
+// 연락처 정보 수정
+app.put('/api/contact', (req, res) => {
+    const updatedContact = {
+        phone: {
+            number: req.body.phone_number || readContact().phone.number,
+            hours: req.body.phone_hours || readContact().phone.hours
+        },
+        email: {
+            address: req.body.email_address || readContact().email.address,
+            hours: req.body.email_hours || readContact().email.hours
+        },
+        kakao: {
+            id: req.body.kakao_id || readContact().kakao.id,
+            hours: req.body.kakao_hours || readContact().kakao.hours
+        }
+    };
+    
+    writeContact(updatedContact);
+    res.json(updatedContact);
 });
 
 // 메인 페이지 라우트

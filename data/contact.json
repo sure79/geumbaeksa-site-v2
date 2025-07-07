@@ -1,0 +1,14 @@
+{
+  "phone": {
+    "number": "1588-1234",
+    "hours": "평일 9:00-18:00"
+  },
+  "email": {
+    "address": "info@geumbaeksa.com",
+    "hours": "24시간 접수"
+  },
+  "kakao": {
+    "id": "@금박사",
+    "hours": "평일 9:00-18:00"
+  }
+} 
