@@ -4,14 +4,30 @@ const path = require('path');
 const fs = require('fs');
 const bodyParser = require('body-parser');
 const cors = require('cors');
+const session = require('express-session');
 
 const app = express();
 const PORT = 3000;
+
+// 관리자 설정
+const ADMIN_PASSWORD = 'admin123'; // 비밀번호를 원하는 값으로 변경하세요
 
 // 미들웨어 설정
 app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+
+// 세션 설정
+app.use(session({
+    secret: 'geumbaeksa-secret-key', // 실제 운영에서는 더 복잡한 키를 사용하세요
+    resave: false,
+    saveUninitialized: false,
+    cookie: { 
+        secure: false, // HTTPS 환경에서는 true로 설정
+        maxAge: 24 * 60 * 60 * 1000 // 24시간
+    }
+}));
+
 app.use(express.static('public'));
 app.use('/uploads', express.static('uploads'));
 
@@ -170,6 +186,51 @@ function writeContact(data) {
     fs.writeFileSync(contactFile, JSON.stringify(data, null, 2));
 }
 
+// 관리자 인증 미들웨어
+function requireAuth(req, res, next) {
+    if (req.session.isAdmin) {
+        next();
+    } else {
+        res.status(401).json({ error: '관리자 권한이 필요합니다.' });
+    }
+}
+
+// 관리자 페이지 접근 보호
+app.get('/admin.html', (req, res) => {
+    if (req.session.isAdmin) {
+        res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+    } else {
+        res.redirect('/admin-login.html');
+    }
+});
+
+// 관리자 로그인 API
+app.post('/api/admin/login', (req, res) => {
+    const { password } = req.body;
+    
+    if (password === ADMIN_PASSWORD) {
+        req.session.isAdmin = true;
+        res.json({ success: true, message: '로그인 성공' });
+    } else {
+        res.status(401).json({ success: false, message: '비밀번호가 올바르지 않습니다.' });
+    }
+});
+
+// 관리자 로그아웃 API
+app.post('/api/admin/logout', (req, res) => {
+    req.session.destroy((err) => {
+        if (err) {
+            return res.status(500).json({ success: false, message: '로그아웃 중 오류가 발생했습니다.' });
+        }
+        res.json({ success: true, message: '로그아웃 성공' });
+    });
+});
+
+// 관리자 인증 상태 확인 API
+app.get('/api/admin/status', (req, res) => {
+    res.json({ isAdmin: !!req.session.isAdmin });
+});
+
 // API 라우트
 
 // 모든 지점 조회
@@ -189,7 +250,7 @@ app.get('/api/branches/:id', (req, res) => {
 });
 
 // 지점 추가
-app.post('/api/branches', upload.single('image'), (req, res) => {
+app.post('/api/branches', requireAuth, upload.single('image'), (req, res) => {
     const data = readData();
     const newBranch = {
         id: data.branches.length > 0 ? Math.max(...data.branches.map(b => b.id)) + 1 : 1,
@@ -208,7 +269,7 @@ app.post('/api/branches', upload.single('image'), (req, res) => {
 });
 
 // 지점 수정
-app.put('/api/branches/:id', upload.single('image'), (req, res) => {
+app.put('/api/branches/:id', requireAuth, upload.single('image'), (req, res) => {
     const data = readData();
     const branchIndex = data.branches.findIndex(b => b.id === parseInt(req.params.id));
     
@@ -236,7 +297,7 @@ app.put('/api/branches/:id', upload.single('image'), (req, res) => {
 });
 
 // 지점 삭제
-app.delete('/api/branches/:id', (req, res) => {
+app.delete('/api/branches/:id', requireAuth, (req, res) => {
     const data = readData();
     const branchIndex = data.branches.findIndex(b => b.id === parseInt(req.params.id));
     
@@ -268,7 +329,7 @@ app.get('/api/slides/:id', (req, res) => {
 });
 
 // 슬라이드 추가
-app.post('/api/slides', upload.single('image'), (req, res) => {
+app.post('/api/slides', requireAuth, upload.single('image'), (req, res) => {
     const data = readSlides();
     const newSlide = {
         id: data.slides.length > 0 ? Math.max(...data.slides.map(s => s.id)) + 1 : 1,
@@ -284,7 +345,7 @@ app.post('/api/slides', upload.single('image'), (req, res) => {
 });
 
 // 슬라이드 수정
-app.put('/api/slides/:id', upload.single('image'), (req, res) => {
+app.put('/api/slides/:id', requireAuth, upload.single('image'), (req, res) => {
     const data = readSlides();
     const slideIndex = data.slides.findIndex(s => s.id === parseInt(req.params.id));
     
@@ -309,7 +370,7 @@ app.put('/api/slides/:id', upload.single('image'), (req, res) => {
 });
 
 // 슬라이드 삭제
-app.delete('/api/slides/:id', (req, res) => {
+app.delete('/api/slides/:id', requireAuth, (req, res) => {
     const data = readSlides();
     const slideIndex = data.slides.findIndex(s => s.id === parseInt(req.params.id));
     
@@ -331,7 +392,7 @@ app.get('/api/contact', (req, res) => {
 });
 
 // 연락처 정보 수정
-app.put('/api/contact', (req, res) => {
+app.put('/api/contact', requireAuth, (req, res) => {
     const updatedContact = {
         phone: {
             number: req.body.phone_number || readContact().phone.number,
