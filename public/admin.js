@@ -2,10 +2,13 @@
 let branches = [];
 let slides = [];
 let contact = {};
+let reviews = [];
 let currentEditingBranch = null;
 let currentEditingSlide = null;
+let currentEditingReview = null;
 let deleteTargetId = null;
 let deleteSlideTargetId = null;
+let deleteReviewTargetId = null;
 
 // DOM 로드 완료 후 초기화
 document.addEventListener('DOMContentLoaded', function() {
@@ -13,6 +16,7 @@ document.addEventListener('DOMContentLoaded', function() {
     loadBranches();
     loadSlides();
     loadContact();
+    loadReviews();
     initializeEventListeners();
     updateDashboard();
 });
@@ -51,10 +55,12 @@ function initializeEventListeners() {
     document.getElementById('branchForm').addEventListener('submit', handleFormSubmit);
     document.getElementById('slideForm').addEventListener('submit', handleSlideFormSubmit);
     document.getElementById('contactForm').addEventListener('submit', handleContactFormSubmit);
+    document.getElementById('reviewForm').addEventListener('submit', handleReviewFormSubmit);
     
     // 이미지 파일 선택 이벤트
     document.getElementById('branchImage').addEventListener('change', handleImagePreview);
     document.getElementById('slideImage').addEventListener('change', handleSlideImagePreview);
+    document.getElementById('reviewImage').addEventListener('change', handleReviewImagePreview);
     
     // 모달 외부 클릭 이벤트
     window.addEventListener('click', handleModalClick);
@@ -109,6 +115,23 @@ async function loadContact() {
     } catch (error) {
         console.error('연락처 데이터 로드 중 오류:', error);
         showToast('연락처 데이터를 불러오는 중 오류가 발생했습니다.', 'error');
+    }
+}
+
+// 후기 데이터 로드
+async function loadReviews() {
+    try {
+        showLoading();
+        const response = await fetch('/api/reviews');
+        if (!response.ok) throw new Error('후기 데이터를 불러올 수 없습니다.');
+        
+        reviews = await response.json();
+        displayReviews();
+    } catch (error) {
+        console.error('후기 데이터 로드 중 오류:', error);
+        showToast('후기 데이터를 불러오는 중 오류가 발생했습니다.', 'error');
+    } finally {
+        hideLoading();
     }
 }
 
@@ -185,7 +208,7 @@ function displaySlides() {
             <td><strong>${slide.title}</strong></td>
             <td>${slide.description.length > 50 ? slide.description.substring(0, 50) + '...' : slide.description}</td>
             <td>
-                <img src="${slide.image || '/uploads/default-slide.jpg'}" 
+                <img src="${slide.image || '/uploads/default-slide.jpg'}?t=${Date.now()}" 
                      alt="${slide.title}" 
                      style="width: 60px; height: 40px; object-fit: cover; border-radius: 4px;">
             </td>
@@ -201,6 +224,70 @@ function displaySlides() {
                         수정
                     </button>
                     <button class="btn btn-sm btn-danger" onclick="deleteSlide(${slide.id})">
+                        <i class="fas fa-trash"></i>
+                        삭제
+                    </button>
+                </div>
+            </td>
+        </tr>
+    `).join('');
+}
+
+// 후기 목록 표시
+function displayReviews() {
+    const tableBody = document.getElementById('reviewsTableBody');
+    
+    if (reviews.length === 0) {
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="9" class="empty-state">
+                    <i class="fas fa-comments"></i>
+                    <h3>등록된 후기가 없습니다</h3>
+                    <p>새로운 후기를 추가해보세요.</p>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    tableBody.innerHTML = reviews.map(review => `
+        <tr>
+            <td>${review.id}</td>
+            <td><strong>${review.branchName}</strong></td>
+            <td>${review.customerName}</td>
+            <td>
+                <div class="rating">
+                    ${'⭐'.repeat(review.rating)}
+                    <span class="rating-score">(${review.rating})</span>
+                </div>
+            </td>
+            <td>
+                <div class="comment-cell">
+                    ${review.comment.length > 50 ? review.comment.substring(0, 50) + '...' : review.comment}
+                </div>
+            </td>
+            <td>
+                ${review.image ? `<img src="${review.image}?t=${Date.now()}" 
+                     alt="후기 이미지" 
+                     style="width: 60px; height: 40px; object-fit: cover; border-radius: 4px;">` : '이미지 없음'}
+            </td>
+            <td>
+                <span class="status-badge ${review.isActive ? 'active' : 'inactive'}">
+                    ${review.isActive ? '활성화' : '비활성화'}
+                </span>
+            </td>
+            <td>
+                <div class="date-cell">
+                    ${new Date(review.createdAt).toLocaleDateString('ko-KR')}
+                </div>
+            </td>
+            <td>
+                <div class="action-buttons">
+                    <button class="btn btn-sm btn-primary" onclick="editReview(${review.id})">
+                        <i class="fas fa-edit"></i>
+                        수정
+                    </button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteReview(${review.id})">
                         <i class="fas fa-trash"></i>
                         삭제
                     </button>
@@ -295,8 +382,12 @@ async function confirmDelete() {
     
     try {
         showLoading();
+        const token = localStorage.getItem('adminToken');
         const response = await fetch(`/api/branches/${deleteTargetId}`, {
-            method: 'DELETE'
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
         });
         
         if (!response.ok) throw new Error('삭제 실패');
@@ -339,7 +430,7 @@ function editSlide(slideId) {
     // 이미지 미리보기
     if (slide.image) {
         const preview = document.getElementById('slideImagePreview');
-        preview.innerHTML = `<img src="${slide.image}" alt="슬라이드 이미지">`;
+        preview.innerHTML = `<img src="${slide.image}?t=${Date.now()}" alt="슬라이드 이미지">`;
         preview.classList.add('has-image');
     }
     
@@ -364,8 +455,12 @@ async function confirmDeleteSlide() {
     
     try {
         showLoading();
+        const token = localStorage.getItem('adminToken');
         const response = await fetch(`/api/slides/${deleteSlideTargetId}`, {
-            method: 'DELETE'
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
         });
         
         if (!response.ok) throw new Error('삭제 실패');
@@ -397,8 +492,12 @@ async function handleSlideFormSubmit(e) {
         
         const method = currentEditingSlide ? 'PUT' : 'POST';
         
+        const token = localStorage.getItem('adminToken');
         const response = await fetch(url, {
             method: method,
+            headers: {
+                'Authorization': `Bearer ${token}`
+            },
             body: formData
         });
         
@@ -518,8 +617,12 @@ async function handleFormSubmit(e) {
         
         const method = currentEditingBranch ? 'PUT' : 'POST';
         
+        const token = localStorage.getItem('adminToken');
         const response = await fetch(url, {
             method: method,
+            headers: {
+                'Authorization': `Bearer ${token}`
+            },
             body: formData
         });
         
@@ -944,10 +1047,12 @@ async function handleContactFormSubmit(e) {
     try {
         showLoading();
         
+        const token = localStorage.getItem('adminToken');
         const response = await fetch('/api/contact', {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
             },
             body: JSON.stringify(contactData)
         });
@@ -969,4 +1074,250 @@ async function handleContactFormSubmit(e) {
     } finally {
         hideLoading();
     }
+}
+
+// 후기 관리 관련 함수들
+
+// 후기 추가 모달 열기
+function openAddReviewModal() {
+    resetReviewForm();
+    populateBranchSelect();
+    document.getElementById('reviewFormModalTitle').textContent = '후기 추가';
+    document.getElementById('reviewSubmitButtonText').textContent = '추가';
+    document.getElementById('reviewFormModal').style.display = 'block';
+    document.body.style.overflow = 'hidden';
+    currentEditingReview = null;
+}
+
+// 후기 수정 모달 열기
+function editReview(reviewId) {
+    const review = reviews.find(r => r.id === reviewId);
+    if (!review) return;
+    
+    populateBranchSelect();
+    
+    // 폼 채우기
+    document.getElementById('reviewBranch').value = review.branchId;
+    document.getElementById('reviewCustomerName').value = review.customerName;
+    document.getElementById('reviewRating').value = review.rating;
+    document.getElementById('reviewComment').value = review.comment;
+    document.getElementById('reviewActive').value = review.isActive.toString();
+    
+    // 기존 이미지 표시
+    const imagePreview = document.getElementById('reviewImagePreview');
+    if (review.image) {
+        imagePreview.innerHTML = `
+            <div class="current-image">
+                <img src="${review.image}?t=${Date.now()}" alt="현재 이미지">
+                <p>현재 이미지</p>
+            </div>
+        `;
+    } else {
+        imagePreview.innerHTML = '';
+    }
+    
+    document.getElementById('reviewFormModalTitle').textContent = '후기 수정';
+    document.getElementById('reviewSubmitButtonText').textContent = '수정';
+    document.getElementById('reviewFormModal').style.display = 'block';
+    document.body.style.overflow = 'hidden';
+    currentEditingReview = review;
+}
+
+// 후기 삭제
+function deleteReview(reviewId) {
+    const review = reviews.find(r => r.id === reviewId);
+    if (!review) return;
+    
+    document.getElementById('deleteReviewTitle').textContent = `${review.customerName}님의 후기`;
+    document.getElementById('deleteReviewModal').style.display = 'block';
+    document.body.style.overflow = 'hidden';
+    deleteReviewTargetId = reviewId;
+}
+
+// 후기 삭제 확인
+async function confirmDeleteReview() {
+    if (!deleteReviewTargetId) return;
+    
+    try {
+        showLoading();
+        
+        const token = localStorage.getItem('adminToken');
+        const response = await fetch(`/api/reviews/${deleteReviewTargetId}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error('후기를 삭제할 수 없습니다.');
+        }
+        
+        await loadReviews();
+        closeDeleteReviewModal();
+        showToast('후기가 성공적으로 삭제되었습니다.', 'success');
+        
+    } catch (error) {
+        console.error('후기 삭제 중 오류:', error);
+        showToast('후기 삭제 중 오류가 발생했습니다.', 'error');
+    } finally {
+        hideLoading();
+    }
+}
+
+// 후기 폼 제출 처리
+async function handleReviewFormSubmit(e) {
+    e.preventDefault();
+    
+    if (!validateReviewForm()) return;
+    
+    const formData = new FormData(e.target);
+    
+    // 지점 이름 추가
+    const branchId = parseInt(formData.get('branchId'));
+    const branch = branches.find(b => b.id === branchId);
+    if (branch) {
+        formData.append('branchName', branch.name);
+    }
+    
+    try {
+        showLoading();
+        
+        const token = localStorage.getItem('adminToken');
+        const url = currentEditingReview ? `/api/reviews/${currentEditingReview.id}` : '/api/reviews';
+        const method = currentEditingReview ? 'PUT' : 'POST';
+        
+        const response = await fetch(url, {
+            method: method,
+            headers: {
+                'Authorization': `Bearer ${token}`
+            },
+            body: formData
+        });
+        
+        if (!response.ok) {
+            throw new Error('후기를 저장할 수 없습니다.');
+        }
+        
+        await loadReviews();
+        closeReviewFormModal();
+        showToast(`후기가 성공적으로 ${currentEditingReview ? '수정' : '추가'}되었습니다.`, 'success');
+        
+    } catch (error) {
+        console.error('후기 저장 중 오류:', error);
+        showToast('후기 저장 중 오류가 발생했습니다.', 'error');
+    } finally {
+        hideLoading();
+    }
+}
+
+// 후기 폼 유효성 검사
+function validateReviewForm() {
+    clearAllReviewFieldErrors();
+    let isValid = true;
+    
+    const branchId = document.getElementById('reviewBranch').value;
+    const customerName = document.getElementById('reviewCustomerName').value.trim();
+    const rating = document.getElementById('reviewRating').value;
+    const comment = document.getElementById('reviewComment').value.trim();
+    
+    if (!branchId) {
+        showReviewFieldError(document.getElementById('reviewBranch'), '지점을 선택해주세요.');
+        isValid = false;
+    }
+    
+    if (!customerName) {
+        showReviewFieldError(document.getElementById('reviewCustomerName'), '고객명을 입력해주세요.');
+        isValid = false;
+    }
+    
+    if (!rating) {
+        showReviewFieldError(document.getElementById('reviewRating'), '평점을 선택해주세요.');
+        isValid = false;
+    }
+    
+    if (!comment) {
+        showReviewFieldError(document.getElementById('reviewComment'), '후기 내용을 입력해주세요.');
+        isValid = false;
+    }
+    
+    return isValid;
+}
+
+// 후기 폼 필드 오류 표시
+function showReviewFieldError(element, message) {
+    element.classList.add('error');
+    
+    let errorElement = element.nextElementSibling;
+    if (!errorElement || !errorElement.classList.contains('error-message')) {
+        errorElement = document.createElement('div');
+        errorElement.className = 'error-message';
+        element.parentNode.insertBefore(errorElement, element.nextSibling);
+    }
+    
+    errorElement.textContent = message;
+    errorElement.style.color = '#e74c3c';
+    errorElement.style.fontSize = '0.875rem';
+    errorElement.style.marginTop = '0.25rem';
+}
+
+// 후기 폼 모든 필드 오류 제거
+function clearAllReviewFieldErrors() {
+    document.querySelectorAll('#reviewForm .error').forEach(el => el.classList.remove('error'));
+    document.querySelectorAll('#reviewForm .error-message').forEach(el => el.remove());
+}
+
+// 후기 이미지 미리보기
+function handleReviewImagePreview(e) {
+    const file = e.target.files[0];
+    const preview = document.getElementById('reviewImagePreview');
+    
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            preview.innerHTML = `
+                <div class="image-preview-container">
+                    <img src="${e.target.result}" alt="미리보기" style="max-width: 200px; max-height: 200px; object-fit: cover;">
+                    <p>새 이미지</p>
+                </div>
+            `;
+        };
+        reader.readAsDataURL(file);
+    } else {
+        preview.innerHTML = '';
+    }
+}
+
+// 지점 선택 드롭다운 채우기
+function populateBranchSelect() {
+    const select = document.getElementById('reviewBranch');
+    select.innerHTML = '<option value="">지점을 선택하세요</option>';
+    
+    branches.forEach(branch => {
+        const option = document.createElement('option');
+        option.value = branch.id;
+        option.textContent = branch.name;
+        select.appendChild(option);
+    });
+}
+
+// 후기 폼 초기화
+function resetReviewForm() {
+    document.getElementById('reviewForm').reset();
+    document.getElementById('reviewImagePreview').innerHTML = '';
+    clearAllReviewFieldErrors();
+}
+
+// 후기 폼 모달 닫기
+function closeReviewFormModal() {
+    document.getElementById('reviewFormModal').style.display = 'none';
+    document.body.style.overflow = 'auto';
+    currentEditingReview = null;
+}
+
+// 후기 삭제 모달 닫기
+function closeDeleteReviewModal() {
+    document.getElementById('deleteReviewModal').style.display = 'none';
+    document.body.style.overflow = 'auto';
+    deleteReviewTargetId = null;
 } 

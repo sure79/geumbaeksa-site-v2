@@ -38,3 +38,6 @@ admin.css
 admin.js
 script.js 
 .vercel
+
+# Local Netlify folder
+.netlify

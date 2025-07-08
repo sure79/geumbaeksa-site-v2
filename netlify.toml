@@ -1,0 +1,80 @@
+[build]
+  command = "npm run build"
+  functions = "netlify/functions"
+  publish = "public"
+
+[build.environment]
+  NODE_VERSION = "18"
+
+[[redirects]]
+  from = "/api/admin/login"
+  to = "/.netlify/functions/admin-login"
+  status = 200
+
+[[redirects]]
+  from = "/api/admin/status"
+  to = "/.netlify/functions/admin-status"
+  status = 200
+
+[[redirects]]
+  from = "/api/branches/*"
+  to = "/.netlify/functions/branches/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/api/branches"
+  to = "/.netlify/functions/branches"
+  status = 200
+
+[[redirects]]
+  from = "/api/slides/*"
+  to = "/.netlify/functions/slides/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/api/slides"
+  to = "/.netlify/functions/slides"
+  status = 200
+
+[[redirects]]
+  from = "/api/contact"
+  to = "/.netlify/functions/contact"
+  status = 200
+
+[[redirects]]
+  from = "/api/reviews/*"
+  to = "/.netlify/functions/reviews/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/api/reviews"
+  to = "/.netlify/functions/reviews"
+  status = 200
+
+[[redirects]]
+  from = "/api/images/*"
+  to = "/.netlify/functions/images/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[functions]
+  directory = "netlify/functions"
+  
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    
+[[headers]]
+  for = "/api/*"
+  [headers.values]
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Headers = "Content-Type, Authorization"
+    Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS" 

@@ -1,0 +1,59 @@
+{
+  "reviews": [
+    {
+      "id": 1,
+      "branchId": 1,
+      "branchName": "강남점",
+      "customerName": "김**",
+      "rating": 5,
+      "comment": "정말 친절하고 공정한 시세로 거래해주셨어요. 다른 곳보다 훨씬 높은 가격에 매입해주셨습니다!",
+      "image": "/uploads/1751849959138-983845141.png",
+      "createdAt": "2024-01-15T10:30:00Z",
+      "isActive": true
+    },
+    {
+      "id": 2,
+      "branchId": 3,
+      "branchName": "부산금이빨",
+      "customerName": "이**",
+      "rating": 5,
+      "comment": "출장 서비스 정말 만족스러웠어요. 집에서 편리하게 거래할 수 있어서 좋았습니다.",
+      "image": "/uploads/1751850444923-344733715.png",
+      "createdAt": "2024-01-20T14:15:00Z",
+      "isActive": true
+    },
+    {
+      "id": 3,
+      "branchId": 2,
+      "branchName": "홍대점",
+      "customerName": "박**",
+      "rating": 4,
+      "comment": "빠른 감정과 즉시 현금 지급으로 만족합니다. 직원분들도 매우 친절하세요.",
+      "image": "",
+      "createdAt": "2024-01-18T16:45:00Z",
+      "isActive": true
+    },
+    {
+      "id": 4,
+      "branchId": 1,
+      "branchName": "강남점",
+      "customerName": "최**",
+      "rating": 5,
+      "comment": "여러 곳 비교해봤는데 여기가 가장 높은 가격 제시해주셨어요. 신뢰할 수 있는 업체입니다.",
+      "image": "/uploads/1751874433531-936402380.png",
+      "createdAt": "2024-01-22T11:20:00Z",
+      "isActive": true
+    },
+    {
+      "id": 5,
+      "branchId": 4,
+      "branchName": "인천계양점",
+      "customerName": "정**",
+      "rating": 5,
+      "comment": "정확한 감정과 투명한 거래 과정이 인상적이었습니다. 추천합니다!",
+      "image": "/uploads/1751874441103-508982853.png",
+      "createdAt": "2024-01-25T09:30:00Z",
+      "isActive": true
+    }
+  ]
+} 
